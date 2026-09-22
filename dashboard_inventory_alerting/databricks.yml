@@ -25,17 +25,11 @@ targets:
     default: true
     workspace:
       host: https://adb-3905718436519897.17.azuredatabricks.net
-    variables:
-      catalog: uapdev
-      schema: sandbox_silver
   prod:
     mode: production
     workspace:
       host: https://adb-3905718436519897.17.azuredatabricks.net
       root_path: /Workspace/Users/stephen.t.graham@usps.gov/.bundle/${bundle.name}/${bundle.target}
-    variables:
-      catalog: uapdev
-      schema: sandbox_silver
     permissions:
       - user_name: stephen.t.graham@usps.gov
         level: CAN_MANAGE
