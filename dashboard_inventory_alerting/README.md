@@ -26,8 +26,8 @@ dashboard_inventory_t (Delta table)
 
 | Variable | Description | Default |
 |---|---|---|
-| `catalog` | Unity Catalog catalog | `uapdev` |
-| `schema` | Target schema | `sandbox_silver` |
+| `catalog` | Unity Catalog catalog | (required) |
+| `schema` | Target schema | (required) |
 | `table_name` | Inventory table name | `dashboard_inventory_t` |
 | `secret_scope` | Secret scope with SP credentials | (empty = MVP mode) |
 
@@ -53,7 +53,23 @@ databricks bundle deploy --target prod
 
 ### Targets
 
-| Target | Mode | Catalog | Schema |
-|---|---|---|---|
-| `dev` | development | `uapdev` | `sandbox_silver` |
-| `prod` | production | `uapdev` | `sandbox_silver` |
+| Target | Mode | Description |
+|---|---|---|
+| `dev` | development | Schedules paused by default |
+| `prod` | production | Live schedules, restricted permissions |
+
+Set `catalog` and `schema` per target or at deploy time:
+
+```bash
+databricks bundle deploy --target dev --var catalog=uapdev --var schema=sandbox_silver
+```
+
+Or add them permanently to a target in `databricks.yml`:
+
+```yaml
+targets:
+  dev:
+    variables:
+      catalog: uapdev
+      schema: sandbox_silver
+```
