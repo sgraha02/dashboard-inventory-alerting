@@ -1,0 +1,31 @@
+# Dashboard Inventory — Daily Audit MERGE Job
+# Runs daily at 8:00 AM ET to pick up new dashboards from system.access.audit.
+
+resources:
+  jobs:
+    daily_audit_merge:
+      name: "Dashboard Inventory \u2014 Daily Audit MERGE"
+
+      schedule:
+        quartz_cron_expression: "46 0 8 * * ?"
+        timezone_id: America/New_York
+
+      queue:
+        enabled: true
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: table_name
+          default: ${var.table_name}
+
+      tasks:
+        - task_key: audit_merge
+          notebook_task:
+            notebook_path: ../src/daily_audit_merge.py
+            base_parameters:
+              target_table: "${var.catalog}.${var.schema}.${var.table_name}"

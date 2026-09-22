@@ -1,0 +1,42 @@
+# Dashboard Inventory — Initial Setup Job
+# One-time job: creates the table, seeds data via API, and creates alerts.
+# Run manually after first deployment: databricks bundle run initial_setup
+
+resources:
+  jobs:
+    initial_setup:
+      name: "Dashboard Inventory \u2014 Initial Setup"
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: table_name
+          default: ${var.table_name}
+        - name: secret_scope
+          default: ${var.secret_scope}
+
+      tasks:
+        - task_key: create_table
+          notebook_task:
+            notebook_path: ../src/create_table_ddl.py
+            base_parameters:
+              target_table: "${var.catalog}.${var.schema}.${var.table_name}"
+
+        - task_key: api_seed
+          depends_on:
+            - task_key: create_table
+          notebook_task:
+            notebook_path: ../src/api_seed.py
+            base_parameters:
+              target_table: "${var.catalog}.${var.schema}.${var.table_name}"
+              secret_scope: "${var.secret_scope}"
+
+        - task_key: create_alerts
+          depends_on:
+            - task_key: api_seed
+          notebook_task:
+            notebook_path: ../src/create_alerts.py
+            base_parameters:
+              target_table: "${var.catalog}.${var.schema}.${var.table_name}"

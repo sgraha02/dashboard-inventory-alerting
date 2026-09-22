@@ -1,0 +1,41 @@
+# Dashboard Inventory & Alerting — Declarative Automation Bundle
+# Tracks Lakeview dashboard creation across all workspaces and alerts by environment.
+bundle:
+  name: dashboard_inventory_alerting
+  uuid: 09f87a8e-43c4-49a2-bc0a-36f695565c75
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the inventory table
+  schema:
+    description: Schema for the inventory table
+  table_name:
+    description: Name of the dashboard inventory table
+    default: dashboard_inventory_t
+  secret_scope:
+    description: Secret scope with SP credentials (sp-client-id, sp-client-secret, sp-tenant-id)
+    default: ""
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-3905718436519897.17.azuredatabricks.net
+    variables:
+      catalog: uapdev
+      schema: sandbox_silver
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-3905718436519897.17.azuredatabricks.net
+      root_path: /Workspace/Users/stephen.t.graham@usps.gov/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: uapdev
+      schema: sandbox_silver
+    permissions:
+      - user_name: stephen.t.graham@usps.gov
+        level: CAN_MANAGE
