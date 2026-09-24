@@ -1,3 +1,4 @@
+# Databricks notebook source
 """Dashboard Inventory — Daily Audit MERGE.
 
 Picks up new/updated dashboards from `system.access.audit` since the last run.
