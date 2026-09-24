@@ -1,5 +1,12 @@
 # Dashboard Inventory & Alerting — Declarative Automation Bundle
 # Tracks Lakeview dashboard creation across all workspaces and alerts by environment.
+#
+# Portable bundle: not pinned to any workspace. Deploy to any workspace by
+# passing a profile, e.g.:
+#   databricks bundle deploy -t dev  --profile <your-profile>
+#   databricks bundle deploy -t prod --profile <your-profile>
+# Override catalog/schema per run with --var if the defaults don't fit, e.g.:
+#   databricks bundle deploy -t dev --profile <p> --var="catalog=my_cat,schema=my_schema"
 bundle:
   name: dashboard_inventory_alerting
   uuid: 09f87a8e-43c4-49a2-bc0a-36f695565c75
@@ -10,26 +17,36 @@ include:
 variables:
   catalog:
     description: Unity Catalog catalog for the inventory table
+    default: main
   schema:
     description: Schema for the inventory table
+    default: dashboard_inventory
   table_name:
     description: Name of the dashboard inventory table
     default: dashboard_inventory_t
   secret_scope:
     description: Secret scope with SP credentials (sp-client-id, sp-client-secret, sp-tenant-id)
     default: ""
+  admin_principal:
+    description: User or group granted CAN_MANAGE on prod resources (defaults to the deployer)
+    default: ${workspace.current_user.userName}
 
 targets:
+  # No workspace host is set on either target — the target workspace comes from
+  # the --profile flag (or DATABRICKS_HOST) at deploy time, so the same bundle
+  # works in any workspace.
   dev:
     mode: development
     default: true
-    workspace:
-      host: https://adb-3905718436519897.17.azuredatabricks.net
+    variables:
+      schema: dashboard_inventory_dev
   prod:
     mode: production
     workspace:
-      host: https://adb-3905718436519897.17.azuredatabricks.net
-      root_path: /Workspace/Users/stephen.t.graham@usps.gov/.bundle/${bundle.name}/${bundle.target}
+      # Deployer-agnostic path so anyone can own their prod deployment.
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: dashboard_inventory_prod
     permissions:
-      - user_name: stephen.t.graham@usps.gov
+      - user_name: ${var.admin_principal}
         level: CAN_MANAGE
