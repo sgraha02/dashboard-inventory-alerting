@@ -15,13 +15,9 @@ dependencies = [
 dev = [
     "pytest",
     "ruff",
-    "databricks-dlt",
     "databricks-connect>=16.4,<16.5",
     "ipykernel",
 ]
-
-[project.scripts]
-main = "dashboard_inventory_alerting.main:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -20,27 +20,32 @@ dashboard_inventory_t (Delta table)
 * `src/api_seed.py` — Seeds the table via the Lakeview API (MVP single-workspace or full cross-workspace with SP)
 * `src/daily_audit_merge.py` — Daily incremental MERGE from `system.access.audit`
 * `src/create_alerts.py` — Programmatically creates the 4 environment-tier SQL Alerts
-* `resources/sample_job.job.yml` — Job definitions (daily audit MERGE + one-time initial setup)
+* `resources/sample_job.job.yml` — Daily audit MERGE job (scheduled)
+* `resources/initial_setup.job.yml` — One-time setup job (create table, seed data, create alerts)
 
 ## Bundle Variables
 
 | Variable | Description | Default |
 |---|---|---|
-| `catalog` | Unity Catalog catalog | (required) |
-| `schema` | Target schema | (required) |
+| `catalog` | Unity Catalog catalog | `main` |
+| `schema` | Target schema | `dashboard_inventory` (per target: `_dev` / `_prod`) |
 | `table_name` | Inventory table name | `dashboard_inventory_t` |
 | `secret_scope` | Secret scope with SP credentials | (empty = MVP mode) |
+| `admin_principal` | User/group granted `CAN_MANAGE` on prod | the deployer |
 
 ## Deployment
+
+This bundle is workspace-agnostic — it has no host pinned in `databricks.yml`.
+Pass a profile (or set `DATABRICKS_HOST`) to choose the target workspace.
 
 ### First-time setup
 
 ```bash
-# Deploy the bundle (dev target)
-databricks bundle deploy --target dev
+# Deploy the bundle (dev target) to the workspace your profile points at
+databricks bundle deploy --target dev --profile <your-profile>
 
 # Run the initial setup job (creates table, seeds data, creates alerts)
-databricks bundle run initial_setup --target dev
+databricks bundle run initial_setup --target dev --profile <your-profile>
 ```
 
 ### Ongoing
@@ -48,7 +53,7 @@ databricks bundle run initial_setup --target dev
 The `daily_audit_merge` job runs automatically at 8:00 AM ET. To deploy updates:
 
 ```bash
-databricks bundle deploy --target prod
+databricks bundle deploy --target prod --profile <your-profile>
 ```
 
 ### Targets
@@ -61,7 +66,7 @@ databricks bundle deploy --target prod
 Set `catalog` and `schema` per target or at deploy time:
 
 ```bash
-databricks bundle deploy --target dev --var catalog=uapdev --var schema=sandbox_silver
+databricks bundle deploy --target dev --profile <your-profile> --var catalog=uapdev --var schema=sandbox_silver
 ```
 
 Or add them permanently to a target in `databricks.yml`:
