@@ -1,0 +1,95 @@
+# Dashboard Inventory — Daily Audit MERGE Job
+# Runs daily at 8:00 AM ET to pick up new dashboards from system.access.audit.
+
+resources:
+  jobs:
+    daily_audit_merge:
+      name: "Dashboard Inventory \u2014 Daily Audit MERGE"
+
+      schedule:
+        quartz_cron_expression: "46 0 8 * * ?"
+        timezone_id: America/New_York
+
+      queue:
+        enabled: true
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: table_name
+          default: ${var.table_name}
+
+      tasks:
+        # --- Phase 1: Reset alerts to OK (pre-merge, today's data not yet loaded) ---
+        - task_key: reset_sit_alert
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.sit_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: reset_cat_alert
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.cat_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: reset_dev_alert
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.dev_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: reset_prod_alert
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.prod_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        # --- Phase 2: MERGE today's audit data ---
+        - task_key: audit_merge
+          depends_on:
+            - task_key: reset_sit_alert
+            - task_key: reset_cat_alert
+            - task_key: reset_dev_alert
+            - task_key: reset_prod_alert
+          notebook_task:
+            notebook_path: ../src/daily_audit_merge.py
+            base_parameters:
+              target_table: "${var.catalog}.${var.schema}.${var.table_name}"
+
+        # --- Phase 3: Evaluate alerts (post-merge — triggers OK → TRIGGERED notification) ---
+        - task_key: evaluate_sit_alert
+          depends_on:
+            - task_key: audit_merge
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.sit_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: evaluate_cat_alert
+          depends_on:
+            - task_key: audit_merge
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.cat_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: evaluate_dev_alert
+          depends_on:
+            - task_key: audit_merge
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.dev_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: evaluate_prod_alert
+          depends_on:
+            - task_key: audit_merge
+          sql_task:
+            alert:
+              alert_id: ${resources.alerts.prod_dashboard_alert.id}
+            warehouse_id: ${var.warehouse_id}

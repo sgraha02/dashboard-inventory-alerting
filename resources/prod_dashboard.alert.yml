@@ -1,0 +1,30 @@
+# Production environment — new-dashboard alert
+# PAUSED: evaluated by the daily job via sql_task (pre-merge reset / post-merge trigger).
+
+resources:
+  alerts:
+    prod_dashboard_alert:
+      display_name: "Prod_Dashboard_Alert"
+      query_text: |
+        SELECT COUNT(*) AS new_dashboards
+        FROM ${var.catalog}.${var.schema}.${var.table_name}
+        WHERE CAST(seed_timestamp AS DATE) = CURRENT_DATE()
+          AND workspace_environment = 'Production'
+          AND lifecycle_status = 'ACTIVE'
+      warehouse_id: ${var.warehouse_id}
+      evaluation:
+        comparison_operator: 'GREATER_THAN'
+        source:
+          name: 'new_dashboards'
+          display: 'new_dashboards'
+        threshold:
+          value:
+            double_value: 0
+        notification:
+          notify_on_ok: false
+          subscriptions:
+            - user_email: ${workspace.current_user.userName}
+      schedule:
+        pause_status: 'PAUSED'
+        quartz_cron_schedule: '0 0 8 * * ?'
+        timezone_id: 'America/New_York'

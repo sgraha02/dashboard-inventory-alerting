@@ -5,8 +5,9 @@
 # passing a profile, e.g.:
 #   databricks bundle deploy -t dev  --profile <your-profile>
 #   databricks bundle deploy -t prod --profile <your-profile>
-# Override catalog/schema per run with --var if the defaults don't fit, e.g.:
-#   databricks bundle deploy -t dev --profile <p> --var="catalog=my_cat,schema=my_schema"
+# All data variables (catalog, schema, table_name, warehouse_id) are required
+# at deploy time — pass via --var or set in target variables, e.g.:
+#   databricks bundle deploy -t dev --var="catalog=uapdev,schema=sandbox_silver,warehouse_id=abc123"
 bundle:
   name: dashboard_inventory_alerting
   uuid: 09f87a8e-43c4-49a2-bc0a-36f695565c75
@@ -17,16 +18,15 @@ include:
 variables:
   catalog:
     description: Unity Catalog catalog for the inventory table
-    default: main
   schema:
     description: Schema for the inventory table
-    default: dashboard_inventory
   table_name:
     description: Name of the dashboard inventory table
-    default: dashboard_inventory_t
   secret_scope:
     description: Secret scope with SP credentials (sp-client-id, sp-client-secret, sp-tenant-id)
     default: ""
+  warehouse_id:
+    description: SQL warehouse ID for alert evaluation and sql_task execution
   admin_principal:
     description: User or group granted CAN_MANAGE on prod resources (defaults to the deployer)
     default: ${workspace.current_user.userName}
@@ -39,14 +39,17 @@ targets:
     mode: development
     default: true
     variables:
-      schema: dashboard_inventory_dev
+      catalog: uapdev
+      schema: sandbox_silver
+      table_name: dashboard_inventory_t
+      warehouse_id: 4b6a42a61c9cdd9c
+
   prod:
     mode: production
     workspace:
       # Deployer-agnostic path so anyone can own their prod deployment.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
-    variables:
-      schema: dashboard_inventory_prod
+
     permissions:
       - user_name: ${var.admin_principal}
         level: CAN_MANAGE
