@@ -1,5 +1,5 @@
-# Dev environment — new-dashboard alert
-# PAUSED: evaluated by the daily job via sql_task (pre-merge reset / post-merge trigger).
+# Dev environment — new-dashboard V2 alert
+# Runs independently at 8:30 AM ET (after the daily merge at 8:00 AM).
 
 resources:
   alerts:
@@ -25,6 +25,6 @@ resources:
           subscriptions:
             - user_email: ${workspace.current_user.userName}
       schedule:
-        pause_status: 'PAUSED'
-        quartz_cron_schedule: '0 0 8 * * ?'
+        pause_status: 'UNPAUSED'
+        quartz_cron_schedule: '0 30 8 * * ?'
         timezone_id: 'America/New_York'
