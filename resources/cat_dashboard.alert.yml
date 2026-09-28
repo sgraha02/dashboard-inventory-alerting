@@ -22,8 +22,23 @@ resources:
             double_value: 0
         notification:
           notify_on_ok: false
+          seconds_to_retrigger: 1
           subscriptions:
             - user_email: ${workspace.current_user.userName}
+      custom_summary: '@ALERT_NAME - @ALERT_STATUS'
+      custom_description: |
+        ## @ALERT_NAME
+
+        **Status:** @ALERT_STATUS
+
+        **Condition:** @ALERT_COLUMN @ALERT_CONDITION @ALERT_THRESHOLD
+
+        ### New Dashboards
+
+        @QUERY_RESULT_TABLE
+
+        [View Alert](@ALERT_URL)
+      custom_template_format: 'MARKDOWN'
       schedule:
         pause_status: 'UNPAUSED'
         quartz_cron_schedule: '0 30 8 * * ?'
