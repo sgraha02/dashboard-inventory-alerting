@@ -40,7 +40,7 @@ resources:
           depends_on:
             - task_key: api_seed
           notebook_task:
-            notebook_path: ../src/configure_alerts
+            notebook_path: ../src/configure_alerts.py
             base_parameters:
               bundle_name: ${bundle.name}
               target: ${bundle.target}
