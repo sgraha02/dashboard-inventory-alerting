@@ -27,6 +27,11 @@ variables:
   secret_scope:
     description: Secret scope with SP credentials (sp-client-id, sp-client-secret, sp-tenant-id)
     default: ""
+  run_as_service_principal:
+    description: >
+      Application ID of a service principal for job and alert run_as (prod).
+      Leave empty for dev (deployer identity is used). See README.
+    default: ""
   admin_principal:
     description: User or group granted CAN_MANAGE on prod resources (defaults to the deployer)
     default: ${workspace.current_user.userName}
@@ -49,6 +54,9 @@ targets:
     workspace:
       # Deployer-agnostic path so anyone can own their prod deployment.
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+    run_as:
+      service_principal_name: ${var.run_as_service_principal}
 
     permissions:
       - user_name: ${var.admin_principal}

@@ -18,6 +18,8 @@ resources:
           AND create_time IS NOT NULL
         ORDER BY create_time DESC
       warehouse_id: ${var.warehouse_id}
+      run_as:
+        service_principal_name: ${var.run_as_service_principal}
       evaluation:
         comparison_operator: 'IS_NOT_NULL'
         source:

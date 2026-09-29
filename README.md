@@ -92,7 +92,8 @@ show the new dashboards inline.
 | `schema` | Target schema | *(required)* |
 | `table_name` | Inventory table name | *(required)* |
 | `warehouse_id` | SQL warehouse for V2 alert execution | *(required)* |
-| `secret_scope` | Secret scope with SP credentials | `""` (empty = MVP mode) |
+| `secret_scope` | Secret scope with SP credentials for API seeding | `""` (empty = MVP mode) |
+| `run_as_service_principal` | Application ID of SP for job and alert `run_as` (prod) | `""` (deployer identity) |
 | `admin_principal` | User/group granted `CAN_MANAGE` on prod | deployer's username |
 
 The `dev` target pre-sets `catalog`, `schema`, `table_name`, and `warehouse_id`
@@ -122,6 +123,15 @@ databricks bundle run initial_setup -t dev --params secret_scope=<your-scope>
 The secret scope must contain three keys: `sp-client-id`, `sp-client-secret`,
 `sp-tenant-id` (Azure AD app registration credentials for the SP).
 
+To deploy prod with a `run_as` service principal:
+
+```bash
+databricks bundle deploy -t prod \
+  --var="catalog=my_catalog,schema=my_schema,table_name=dashboard_inventory_t" \
+  --var="warehouse_id=<id>" \
+  --var="run_as_service_principal=<application-id>"
+```
+
 ### Ongoing
 
 The daily job runs automatically. To deploy updates:
@@ -140,6 +150,77 @@ databricks bundle run initial_setup -t dev
 |---|---|---|
 | `dev` | development | `uapdev.sandbox_silver.dashboard_inventory_t`, warehouse `4b6a42a61c9cdd9c` |
 | `prod` | production | *(must supply via `--var` or target config)* |
+
+## Service Principal Roles
+
+This bundle uses **two distinct service principal identities** that serve
+different purposes. They can be the same SP or different SPs depending on your
+security model.
+
+### 1. Run-As SP (`run_as_service_principal`)
+
+**Purpose:** Determines the execution identity for all jobs and alerts
+(table reads/writes, warehouse access, Unity Catalog permissions).
+
+* Set via the `run_as_service_principal` bundle variable.
+* **Jobs:** The prod target's `run_as` block passes this application ID so
+  that jobs execute as the SP regardless of who deploys.
+* **Alerts:** Each alert YAML includes a `run_as` block using the same
+  variable, so alerts also execute their queries as the SP.
+* In dev mode this is left empty — jobs and alerts run as the deployer.
+
+**Permissions required:**
+
+* `USE CATALOG` / `USE SCHEMA` on the target catalog and schema
+* `SELECT` and `MODIFY` on the inventory table
+* `SELECT` on `system.access.audit` and `system.access.workspaces_latest`
+* Access to the SQL warehouse specified by `warehouse_id`
+
+### 2. API-Seeding SP (`secret_scope`)
+
+**Purpose:** Authenticates REST API calls to the Lakeview API across multiple
+workspaces. Used **only** by the `api_seed` notebook at runtime — it does not
+affect job ownership or Unity Catalog permissions.
+
+The `api_seed` notebook retrieves the following keys from the secret scope at
+runtime and creates an OAuth token to call each workspace's Lakeview API:
+
+| Secret Key | Description |
+|---|---|
+| `sp-client-id` | Azure AD application (client) ID — **identifies which SP** authenticates to the Lakeview API |
+| `sp-client-secret` | Azure AD client secret (credential) for the SP |
+| `sp-tenant-id` | Azure AD tenant ID where the SP is registered |
+
+**The `sp-client-id` is the critical key** — it determines which service
+principal identity is used for cross-workspace API calls. This SP must be
+registered in each target workspace and granted permission to list Lakeview
+dashboards.
+
+**Permissions required (per workspace):**
+
+* The SP identified by `sp-client-id` must be added to each workspace
+* The SP must have access to the Lakeview dashboards API
+  (`GET /api/2.0/lakeview/dashboards`)
+
+### How They Work Together
+
+```
+bundle deploy -t prod --var="run_as_service_principal=<app-id-A>"
+│
+├─► Jobs run as SP-A (run_as)           ◄── owns table writes, reads audit logs
+│     │
+│     └─► api_seed notebook
+│           │
+│           └─► reads secret_scope
+│                 sp-client-id = <app-id-B>   ◄── authenticates to Lakeview API
+│                 sp-client-secret = ...
+│                 sp-tenant-id = ...
+│
+└─► Alerts run as SP-A (run_as)         ◄── executes alert queries as the SP
+```
+
+SP-A and SP-B can be the same service principal if it has both the Unity
+Catalog/warehouse permissions and Lakeview API access across all workspaces.
 
 ## How New Dashboards Are Detected
 
