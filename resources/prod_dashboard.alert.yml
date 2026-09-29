@@ -6,20 +6,26 @@ resources:
     prod_dashboard_alert:
       display_name: "Prod_Dashboard_Alert"
       query_text: |
-        SELECT COUNT(*) AS new_dashboards
+        SELECT
+          dashboard_id,
+          creator_user_name AS creator,
+          workspace_name,
+          DATE_FORMAT(create_time, 'yyyy-MM-dd HH:mm') AS created_at
         FROM ${var.catalog}.${var.schema}.${var.table_name}
         WHERE CAST(seed_timestamp AS DATE) = CURRENT_DATE()
           AND workspace_environment = 'Production'
           AND lifecycle_status = 'ACTIVE'
+          AND create_time IS NOT NULL
+        ORDER BY create_time DESC
       warehouse_id: ${var.warehouse_id}
       evaluation:
-        comparison_operator: 'GREATER_THAN'
+        comparison_operator: 'IS_NOT_NULL'
         source:
-          name: 'new_dashboards'
-          display: 'new_dashboards'
+          name: 'dashboard_id'
+          display: 'dashboard_id'
         threshold:
           value:
-            double_value: 0
+            string_value: '0'
         notification:
           notify_on_ok: false
           seconds_to_retrigger: 1

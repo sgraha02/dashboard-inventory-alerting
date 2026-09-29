@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Dashboard Inventory — API Seed
 # MAGIC Populates the inventory table with dashboard metadata from the Lakeview API.
-# MAGIC 
+# MAGIC
 # MAGIC **Modes:**
 # MAGIC - If `secret_scope` is set: cross-workspace seed using Service Principal
 # MAGIC - If `secret_scope` is empty: single-workspace seed using session token (MVP)
