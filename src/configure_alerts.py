@@ -72,19 +72,17 @@ for obj in alert_files:
     data = json.loads(content)
 
     # Check if already configured
-    current = (
-        data.get("evaluation", {})
-            .get("notification", {})
-            .get("seconds_to_retrigger")
-    )
+    # NOTE: .dbalert.json uses "retrigger_seconds", NOT "seconds_to_retrigger"
+    notification = data.setdefault("evaluation", {}).setdefault("notification", {})
+    current = notification.get("retrigger_seconds")
     if current == 1:
         print(f"  \u2713 {name}: already set to Always")
         already_set += 1
         continue
 
-    # Patch seconds_to_retrigger
-    data.setdefault("evaluation", {}) \
-        .setdefault("notification", {})["seconds_to_retrigger"] = 1
+    # Patch retrigger_seconds (and remove wrong field name if present)
+    notification["retrigger_seconds"] = 1
+    notification.pop("seconds_to_retrigger", None)
 
     # Re-import
     updated = base64.b64encode(json.dumps(data).encode()).decode()
