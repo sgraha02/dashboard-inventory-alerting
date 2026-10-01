@@ -123,14 +123,28 @@ databricks bundle run initial_setup -t dev --params secret_scope=<your-scope>
 The secret scope must contain three keys: `sp-client-id`, `sp-client-secret`,
 `sp-tenant-id` (Azure AD app registration credentials for the SP).
 
-To deploy prod with a `run_as` service principal:
+### Deploying with a `run_as` Service Principal
+
+The `run_as_service_principal` variable defaults to `""` (empty), meaning jobs
+run as the deployer. To have jobs run as a service principal instead, pass the
+SP's **application ID** via `--var` on either target:
 
 ```bash
+# Dev — all other variables are pre-set; only run_as_service_principal is needed
+databricks bundle deploy -t dev \
+  --var="run_as_service_principal=<application-id>"
+
+# Prod — data variables must also be supplied
 databricks bundle deploy -t prod \
   --var="catalog=my_catalog,schema=my_schema,table_name=dashboard_inventory_t" \
   --var="warehouse_id=<id>" \
   --var="run_as_service_principal=<application-id>"
 ```
+
+> **Note:** `run_as_service_principal` expects an application ID (UUID), not an
+> email address. The `run_as` block lives in the `prod` target, so it only
+> takes effect on prod deploys. For dev deploys without `--var`, the empty
+> default is ignored and the deployer's identity is used.
 
 ### Ongoing
 
