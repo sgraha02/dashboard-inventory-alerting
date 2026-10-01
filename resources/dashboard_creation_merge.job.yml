@@ -4,12 +4,13 @@
 resources:
   jobs:
     daily_audit_merge:
-      name: "Dashboard Inventory \u2014 Daily Audit MERGE"
+      name: "Dashboard Inventory — Daily Audit MERGE"
 
       schedule:
         quartz_cron_expression: "46 0 8 * * ?"
         timezone_id: America/New_York
 
+        pause_status: UNPAUSED
       queue:
         enabled: true
 
